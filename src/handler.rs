@@ -12,7 +12,17 @@ pub async fn fetch_user_events(
         .send()
         .await?;
 
-    if !response.status().is_success() {
+    let response_status = response.status();
+    if !response_status.is_success() {
+        let response_text = response.text().await?;
+        let error_message: serde_json::Value = serde_json::from_str(&response_text)?;
+
+        if let Some(message) = error_message.get("message") {
+            println!("Failed to fetch data. \nMessage: {}. \nStatus: {}", message, response_status.as_str());
+        } else {
+            println!("Failed to fetch data. Status: {:?}", response_status.as_str());
+        }
+
         return Err("Failed to fetch data".into());
     }
 
