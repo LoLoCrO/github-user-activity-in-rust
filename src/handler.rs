@@ -13,20 +13,29 @@ pub async fn fetch_user_events(
         .await?;
 
     let response_status = response.status();
+
     if !response_status.is_success() {
         let response_text = response.text().await?;
-        let error_message: serde_json::Value = serde_json::from_str(&response_text)?;
+        let response_message: serde_json::Value = serde_json::from_str(&response_text)?;
 
-        if let Some(message) = error_message.get("message") {
-            println!("Failed to fetch data. \nMessage: {}. \nStatus: {}", message, response_status.as_str());
+        let error_message = if let Some(message) = response_message.get("message") {
+            format!(
+                "Failed to fetch data. Message: {}. Status: {}",
+                message,
+                response_status.as_str()
+            )
         } else {
-            println!("Failed to fetch data. Status: {:?}", response_status.as_str());
-        }
+            format!(
+                "Failed to fetch data. Status: {:?}",
+                response_status.as_str()
+            )
+        };
 
-        return Err("Failed to fetch data".into());
+        return Err(error_message.into());
     }
 
     let events = serde_json::from_str::<Vec<model::Event>>(&response.text().await?)?;
+
     Ok(events)
 }
 
